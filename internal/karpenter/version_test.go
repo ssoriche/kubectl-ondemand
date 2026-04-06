@@ -16,18 +16,18 @@ func TestDetectNodeVersion(t *testing.T) {
 		{name: "nil node", node: nil, expected: APIVersionUnknown},
 		{name: "no labels", node: &corev1.Node{}, expected: APIVersionUnknown},
 		{
-			name: "v1beta1 nodepool label",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelNodePool: "default"}}},
+			name:     "v1beta1 nodepool label",
+			node:     &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelNodePool: "default"}}},
 			expected: APIVersionV1Beta1,
 		},
 		{
-			name: "v1alpha5 provisioner label",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelProvisionerName: "default"}}},
+			name:     "v1alpha5 provisioner label",
+			node:     &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelProvisionerName: "default"}}},
 			expected: APIVersionV1Alpha5,
 		},
 		{
-			name: "both labels prefers v1beta1",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelNodePool: "default", LabelProvisionerName: "default"}}},
+			name:     "both labels prefers v1beta1",
+			node:     &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelNodePool: "default", LabelProvisionerName: "default"}}},
 			expected: APIVersionV1Beta1,
 		},
 	}
@@ -51,13 +51,13 @@ func TestGetPoolName(t *testing.T) {
 	}{
 		{name: "nil node", node: nil, expectedName: "", expectedVersion: APIVersionUnknown},
 		{
-			name: "v1beta1 nodepool",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelNodePool: "gpu-pool"}}},
+			name:         "v1beta1 nodepool",
+			node:         &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelNodePool: "gpu-pool"}}},
 			expectedName: "gpu-pool", expectedVersion: APIVersionV1Beta1,
 		},
 		{
-			name: "v1alpha5 provisioner",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelProvisionerName: "batch"}}},
+			name:         "v1alpha5 provisioner",
+			node:         &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelProvisionerName: "batch"}}},
 			expectedName: "batch", expectedVersion: APIVersionV1Alpha5,
 		},
 	}
@@ -83,13 +83,13 @@ func TestGetCapacityType(t *testing.T) {
 	}{
 		{name: "nil node", node: nil, expected: ""},
 		{
-			name: "on-demand",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelCapacityType: "on-demand"}}},
+			name:     "on-demand",
+			node:     &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelCapacityType: "on-demand"}}},
 			expected: "on-demand",
 		},
 		{
-			name: "spot",
-			node: &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelCapacityType: "spot"}}},
+			name:     "spot",
+			node:     &corev1.Node{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{LabelCapacityType: "spot"}}},
 			expected: "spot",
 		},
 	}

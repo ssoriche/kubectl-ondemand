@@ -21,9 +21,9 @@ func TestNodepoolAllowsSpot(t *testing.T) {
 							"spec": map[string]any{
 								"requirements": []any{
 									map[string]any{
-										"key": "karpenter.sh/capacity-type",
+										"key":      "karpenter.sh/capacity-type",
 										"operator": "In",
-										"values": []any{"spot", "on-demand"},
+										"values":   []any{"spot", "on-demand"},
 									},
 								},
 							},
@@ -42,9 +42,9 @@ func TestNodepoolAllowsSpot(t *testing.T) {
 							"spec": map[string]any{
 								"requirements": []any{
 									map[string]any{
-										"key": "karpenter.sh/capacity-type",
+										"key":      "karpenter.sh/capacity-type",
 										"operator": "In",
-										"values": []any{"on-demand"},
+										"values":   []any{"on-demand"},
 									},
 								},
 							},
@@ -61,9 +61,9 @@ func TestNodepoolAllowsSpot(t *testing.T) {
 					"spec": map[string]any{
 						"requirements": []any{
 							map[string]any{
-								"key": "karpenter.sh/capacity-type",
+								"key":      "karpenter.sh/capacity-type",
 								"operator": "In",
-								"values": []any{"spot", "on-demand"},
+								"values":   []any{"spot", "on-demand"},
 							},
 						},
 					},
@@ -80,9 +80,9 @@ func TestNodepoolAllowsSpot(t *testing.T) {
 							"spec": map[string]any{
 								"requirements": []any{
 									map[string]any{
-										"key": "node.kubernetes.io/instance-type",
+										"key":      "node.kubernetes.io/instance-type",
 										"operator": "In",
-										"values": []any{"m6i.xlarge"},
+										"values":   []any{"m6i.xlarge"},
 									},
 								},
 							},

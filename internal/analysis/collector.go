@@ -13,16 +13,16 @@ import (
 )
 
 type NodeAnalysis struct {
-	Node                *corev1.Node
-	PoolName            string
-	PoolVersion         karpenter.APIVersion
-	InstanceType        string
-	CPUUtilization      int
-	MemoryUtilization   int
-	Reason              NodeReason
-	SpotCapablePercent  int
-	PodClassifications  []PodClassification
-	Pods                []corev1.Pod
+	Node               *corev1.Node
+	PoolName           string
+	PoolVersion        karpenter.APIVersion
+	InstanceType       string
+	CPUUtilization     int
+	MemoryUtilization  int
+	Reason             NodeReason
+	SpotCapablePercent int
+	PodClassifications []PodClassification
+	Pods               []corev1.Pod
 }
 
 type PodDetail struct {

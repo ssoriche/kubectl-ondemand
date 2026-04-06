@@ -76,16 +76,16 @@ func TestCalculateSpotCapablePercent(t *testing.T) {
 	}{
 		{name: "empty", classifications: nil, pods: nil, expected: 0},
 		{
-			name: "all spot-ok workloads",
+			name:            "all spot-ok workloads",
 			classifications: []PodClassification{{Category: CategorySpotOK}, {Category: CategorySpotOK}},
-			pods: []corev1.Pod{{}, {}},
-			expected: 100,
+			pods:            []corev1.Pod{{}, {}},
+			expected:        100,
 		},
 		{
-			name: "50% spot-ok",
+			name:            "50% spot-ok",
 			classifications: []PodClassification{{Category: CategorySpotOK}, {Category: CategoryInherited, Reasons: []Reason{ReasonZonePinned}}},
-			pods: []corev1.Pod{{}, {}},
-			expected: 50,
+			pods:            []corev1.Pod{{}, {}},
+			expected:        50,
 		},
 		{
 			name: "daemonset pods excluded from count",
