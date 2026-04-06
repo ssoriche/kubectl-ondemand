@@ -16,11 +16,11 @@ build: ## Build for current platform
 	go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME) ./cmd/kubectl-ondemand
 
 build-all: ## Build for all platforms
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_linux_amd64 ./cmd/kubectl-ondemand
-	GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_linux_arm64 ./cmd/kubectl-ondemand
-	GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_darwin_amd64 ./cmd/kubectl-ondemand
-	GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_darwin_arm64 ./cmd/kubectl-ondemand
-	GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_windows_amd64.exe ./cmd/kubectl-ondemand
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_linux_amd64 ./cmd/kubectl-ondemand
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_linux_arm64 ./cmd/kubectl-ondemand
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_darwin_amd64 ./cmd/kubectl-ondemand
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_darwin_arm64 ./cmd/kubectl-ondemand
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY_NAME)_windows_amd64.exe ./cmd/kubectl-ondemand
 
 test: ## Run tests
 	go test -v -race ./...
