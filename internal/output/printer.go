@@ -136,7 +136,9 @@ func (p *Printer) printPodDetailsTable(nodeAnalyses []analysis.NodeAnalysis) err
 
 	for idx, na := range nodeAnalyses {
 		if idx > 0 {
-			fmt.Fprintln(w)
+			if _, err := fmt.Fprintln(w); err != nil {
+				return err
+			}
 		}
 
 		node := na.Node
@@ -149,14 +151,24 @@ func (p *Printer) printPodDetailsTable(nodeAnalyses []analysis.NodeAnalysis) err
 			poolName = "<none>"
 		}
 
-		fmt.Fprintf(w, "NODE: %s (%s, nodepool: %s, age: %s)\n",
-			node.Name, instanceType, poolName, analysis.FormatAge(node.CreationTimestamp.Time))
-		fmt.Fprintf(w, "REASON: %s\n", na.Reason)
-		fmt.Fprintf(w, "CPU: %s\tMEM: %s\n", analysis.FormatUtilization(na.CPUUtilization), analysis.FormatUtilization(na.MemoryUtilization))
-		fmt.Fprintln(w)
+		if _, err := fmt.Fprintf(w, "NODE: %s (%s, nodepool: %s, age: %s)\n",
+			node.Name, instanceType, poolName, analysis.FormatAge(node.CreationTimestamp.Time)); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "REASON: %s\n", na.Reason); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "CPU: %s\tMEM: %s\n", analysis.FormatUtilization(na.CPUUtilization), analysis.FormatUtilization(na.MemoryUtilization)); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintln(w); err != nil {
+			return err
+		}
 
 		if !p.noHeaders {
-			fmt.Fprintln(w, "NAMESPACE\tPOD\tCPU\tMEM\tCATEGORY\tREASONS")
+			if _, err := fmt.Fprintln(w, "NAMESPACE\tPOD\tCPU\tMEM\tCATEGORY\tREASONS"); err != nil {
+				return err
+			}
 		}
 
 		details := analysis.GetPodDetails(&na)
@@ -165,8 +177,10 @@ func (p *Printer) printPodDetailsTable(nodeAnalyses []analysis.NodeAnalysis) err
 			if len(d.Reasons) > 0 {
 				reasons = formatReasons(d.Reasons)
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-				d.Namespace, d.Name, d.CPU, d.Memory, string(d.Category), reasons)
+			if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+				d.Namespace, d.Name, d.CPU, d.Memory, string(d.Category), reasons); err != nil {
+				return err
+			}
 		}
 	}
 
