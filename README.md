@@ -20,7 +20,7 @@ A kubectl plugin that analyzes why Karpenter nodes are on-demand and whether wor
 kubectl ondemand
 ```
 
-```
+```text
 NAME                          INSTANCE-TYPE   NODEPOOL   AGE   CPU-UTIL   MEM-UTIL   ON-DEMAND-REASON   SPOT-CAPABLE%
 ip-10-0-1-100.ec2.internal    r6g.4xlarge     default    5d    45%        62%        requested          0%
 ip-10-0-1-101.ec2.internal    m6i.8xlarge     default    3d    82%        71%        spot-fallback      75%
@@ -35,7 +35,7 @@ Passing a node name (or `--pods`) shows per-pod classification with the reasons 
 kubectl ondemand ip-10-0-1-101.ec2.internal
 ```
 
-```
+```text
 NODE: ip-10-0-1-101.ec2.internal (m6i.8xlarge, nodepool: default, age: 3d)
 REASON: spot-fallback
 CPU: 82%    MEM: 71%
