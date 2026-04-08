@@ -36,6 +36,10 @@ Classifies each node as:
   spot-fallback - nodepool supports spot but Karpenter fell back to on-demand
   inherited     - workload constraints prevent spot, but didn't ask for on-demand
 
+DaemonSet pods are classified as "system" and excluded from node reason rollup
+and spot-capable percentage by default. Use --include-daemonsets to classify
+them through the full pipeline.
+
 Shows per-pod classification with --pods flag or when specific nodes are given.`,
 		Example: `  # Show all on-demand nodes with summary
   kubectl ondemand
@@ -66,16 +70,18 @@ Shows per-pod classification with --pods flag or when specific nodes are given.`
 	cmd.Flags().StringVarP(&opts.output, "output", "o", "", "Output format (json, yaml)")
 	cmd.Flags().BoolVar(&opts.noHeaders, "no-headers", false, "Don't print headers")
 	cmd.Flags().StringVar(&opts.spotTaint, "spot-taint", "", "Spot taint to check for (key=value:Effect)")
+	cmd.Flags().BoolVar(&opts.includeDaemonSets, "include-daemonsets", false, "Include DaemonSet pods in classification (default: excluded as system)")
 
 	return cmd
 }
 
 type options struct {
-	pods      bool
-	selector  string
-	output    string
-	noHeaders bool
-	spotTaint string
+	pods              bool
+	selector          string
+	output            string
+	noHeaders         bool
+	spotTaint         string
+	includeDaemonSets bool
 }
 
 func run(ctx context.Context, args []string, opts options) error {
@@ -99,7 +105,7 @@ func run(ctx context.Context, args []string, opts options) error {
 		capabilities = &karpenter.ClusterCapabilities{}
 	}
 
-	collector := analysis.NewCollector(client, dynClient, capabilities, opts.spotTaint)
+	collector := analysis.NewCollector(client, dynClient, capabilities, opts.spotTaint, opts.includeDaemonSets)
 	printer := output.NewPrinter(capabilities, opts.output, opts.noHeaders)
 
 	nodes, err := collector.Collect(ctx, args, opts.selector)

@@ -15,6 +15,7 @@ const (
 	CategoryRequested PodCategory = "requested"
 	CategoryInherited PodCategory = "inherited"
 	CategorySpotOK    PodCategory = "spot-ok"
+	CategorySystem    PodCategory = "system"
 )
 
 // Reason is a specific reason a pod is categorized a certain way
@@ -28,6 +29,7 @@ const (
 	ReasonRestrictiveAntiAffinity  Reason = "restrictive-anti-affinity"
 	ReasonRestrictiveAffinity      Reason = "restrictive-affinity"
 	ReasonLocalStorage             Reason = "local-storage"
+	ReasonDaemonSet                Reason = "daemonset"
 )
 
 // PodClassification contains the category and reasons for a pod's classification

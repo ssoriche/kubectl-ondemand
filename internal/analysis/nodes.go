@@ -60,6 +60,9 @@ func DetermineNodeReason(classifications []PodClassification, nodepoolAllowsSpot
 	hasInherited := false
 
 	for _, c := range classifications {
+		if c.Category == CategorySystem {
+			continue
+		}
 		switch c.Category {
 		case CategoryRequested:
 			hasRequested = true
@@ -83,7 +86,7 @@ func DetermineNodeReason(classifications []PodClassification, nodepoolAllowsSpot
 	return NodeReasonInherited
 }
 
-func CalculateSpotCapablePercent(classifications []PodClassification, pods []corev1.Pod) int {
+func CalculateSpotCapablePercent(classifications []PodClassification) int {
 	if len(classifications) == 0 {
 		return 0
 	}
@@ -91,8 +94,8 @@ func CalculateSpotCapablePercent(classifications []PodClassification, pods []cor
 	workloadCount := 0
 	spotOKCount := 0
 
-	for i, c := range classifications {
-		if IsDaemonSetPod(&pods[i]) {
+	for _, c := range classifications {
+		if c.Category == CategorySystem {
 			continue
 		}
 		workloadCount++

@@ -88,13 +88,14 @@ The plugin answers the question: **why is this node on-demand?** It does this at
 
 ### Pod Categories
 
-Each pod on an on-demand node is classified into one of three categories based on its scheduling constraints:
+Each pod on an on-demand node is classified into one of four categories based on its scheduling constraints:
 
 | Category | Meaning | Action |
 |----------|---------|--------|
 | `requested` | Pod **explicitly asks** for on-demand via nodeSelector or node affinity | Intentional — verify this is actually needed |
 | `inherited` | Pod has constraints that **prevent spot placement**, but never explicitly asked for on-demand | Candidate for reconfiguration |
 | `spot-ok` | Pod has **no constraints** preventing spot — it's on this node because the node existed | Safe to move to spot |
+| `system` | Pod is a **DaemonSet** (node infrastructure like kube-proxy, CNI, logging agents) | Excluded from node reason rollup and spot-capable % by default |
 
 **The key distinction between `requested` and `inherited`:** A `requested` pod said "I want on-demand." An `inherited` pod never said that — its other constraints (tolerations, zone pinning, affinity rules) just happen to prevent it from running on spot. Inherited pods are the best candidates for reconfiguration since they may not actually need to avoid spot.
 
@@ -131,7 +132,7 @@ The node-level reason rolls up from its pods:
 | `spot-fallback` | Nodepool config allows spot, no pods request on-demand, and no pods have inherited constraints | Karpenter tried spot but fell back — likely a capacity issue |
 | `inherited` | Pods have constraints preventing spot, but none explicitly requested on-demand | Workload config is driving on-demand usage unintentionally |
 
-The **SPOT-CAPABLE%** column shows what percentage of non-DaemonSet workload pods on the node are classified as `spot-ok`. A node showing `inherited` with high spot-capable% is a strong signal that a few misconfigured pods are keeping the whole node on-demand.
+The **SPOT-CAPABLE%** column shows what percentage of non-DaemonSet workload pods on the node are classified as `spot-ok`. DaemonSet pods are classified as `system` and excluded from both this calculation and the node reason rollup by default. Use `--include-daemonsets` to classify them normally through the full pipeline. A node showing `inherited` with high spot-capable% is a strong signal that a few misconfigured pods are keeping the whole node on-demand.
 
 ### Nodepool Spot Detection
 
@@ -146,6 +147,7 @@ To determine `spot-fallback`, the plugin fetches NodePool (v1beta1/v1) or Provis
 | `--output` | `-o` | Output format: `json`, `yaml`, or table (default) |
 | `--no-headers` | | Suppress table headers |
 | `--spot-taint` | | Spot taint to validate (format: `key=value:Effect`) |
+| `--include-daemonsets` | | Include DaemonSet pods in classification (default: excluded as `system`) |
 | `--version` | `-v` | Show version |
 
 ## Karpenter Version Support

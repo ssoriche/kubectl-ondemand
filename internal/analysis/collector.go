@@ -36,18 +36,20 @@ type PodDetail struct {
 }
 
 type Collector struct {
-	client       kubernetes.Interface
-	dynClient    dynamic.Interface
-	capabilities *karpenter.ClusterCapabilities
-	classifier   *Classifier
+	client            kubernetes.Interface
+	dynClient         dynamic.Interface
+	capabilities      *karpenter.ClusterCapabilities
+	classifier        *Classifier
+	includeDaemonSets bool
 }
 
-func NewCollector(client kubernetes.Interface, dynClient dynamic.Interface, capabilities *karpenter.ClusterCapabilities, spotTaint string) *Collector {
+func NewCollector(client kubernetes.Interface, dynClient dynamic.Interface, capabilities *karpenter.ClusterCapabilities, spotTaint string, includeDaemonSets bool) *Collector {
 	return &Collector{
-		client:       client,
-		dynClient:    dynClient,
-		capabilities: capabilities,
-		classifier:   NewClassifier(spotTaint),
+		client:            client,
+		dynClient:         dynClient,
+		capabilities:      capabilities,
+		classifier:        NewClassifier(spotTaint),
+		includeDaemonSets: includeDaemonSets,
 	}
 }
 
@@ -132,7 +134,11 @@ func (c *Collector) analyzeNode(node *corev1.Node, pods []corev1.Pod, nodepoolCo
 
 	classifications := make([]PodClassification, len(pods))
 	for i := range pods {
-		classifications[i] = c.classifier.ClassifyPod(&pods[i])
+		if !c.includeDaemonSets && IsDaemonSetPod(&pods[i]) {
+			classifications[i] = PodClassification{Category: CategorySystem, Reasons: []Reason{ReasonDaemonSet}}
+		} else {
+			classifications[i] = c.classifier.ClassifyPod(&pods[i])
+		}
 	}
 
 	info.PodClassifications = classifications
@@ -140,7 +146,7 @@ func (c *Collector) analyzeNode(node *corev1.Node, pods []corev1.Pod, nodepoolCo
 
 	nodepoolAllowsSpot := nodepoolConfigs[info.PoolName]
 	info.Reason = DetermineNodeReason(classifications, nodepoolAllowsSpot)
-	info.SpotCapablePercent = CalculateSpotCapablePercent(classifications, pods)
+	info.SpotCapablePercent = CalculateSpotCapablePercent(classifications)
 
 	return info
 }
