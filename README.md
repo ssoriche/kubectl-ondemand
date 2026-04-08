@@ -67,7 +67,7 @@ When your cluster uses a taint to mark spot nodes, pass `--spot-taint` to detect
 kubectl ondemand --spot-taint core.zr.org/dedicated=spot:NoSchedule
 ```
 
-The format is `key=value:Effect` where Effect is `NoSchedule`, `NoExecute`, or `PreferNoSchedule`. When this flag is omitted, the missing-spot-toleration check is skipped.
+The format is `key=value:Effect` where Effect is `NoSchedule`, `NoExecute`, or `PreferNoSchedule`. When this flag is omitted, the missing-spot-toleration check is skipped. If the format is invalid, the flag is silently ignored and the check is skipped.
 
 ### Output formats
 
