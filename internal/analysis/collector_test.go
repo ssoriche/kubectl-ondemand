@@ -9,6 +9,7 @@ import (
 )
 
 func TestAnalyzeNode_DaemonSetClassification(t *testing.T) {
+	trueVal := true
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-node"},
 		Status: corev1.NodeStatus{
@@ -24,7 +25,7 @@ func TestAnalyzeNode_DaemonSetClassification(t *testing.T) {
 			Name:      "kube-proxy-abc",
 			Namespace: "kube-system",
 			OwnerReferences: []metav1.OwnerReference{
-				{Kind: "DaemonSet", Name: "kube-proxy"},
+				{Kind: "DaemonSet", Name: "kube-proxy", APIVersion: "apps/v1", Controller: &trueVal},
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -84,8 +85,8 @@ func TestAnalyzeNode_DaemonSetClassification(t *testing.T) {
 		}
 		result := c.analyzeNode(node, pods, nodepoolConfigs)
 
-		if result.PodClassifications[0].Category == CategorySystem {
-			t.Errorf("DaemonSet pod should not be system when includeDaemonSets=true, got %v", result.PodClassifications[0].Category)
+		if result.PodClassifications[0].Category != CategorySpotOK {
+			t.Errorf("DaemonSet pod category = %v, want %v when includeDaemonSets=true", result.PodClassifications[0].Category, CategorySpotOK)
 		}
 	})
 }

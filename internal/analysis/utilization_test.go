@@ -85,6 +85,7 @@ func TestCalculateUtilization(t *testing.T) {
 }
 
 func TestIsDaemonSetPod(t *testing.T) {
+	trueVal := true
 	tests := []struct {
 		name     string
 		pod      corev1.Pod
@@ -94,9 +95,16 @@ func TestIsDaemonSetPod(t *testing.T) {
 		{
 			name: "daemonset pod",
 			pod: corev1.Pod{ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{{Kind: "DaemonSet", Name: "fluentd"}},
+				OwnerReferences: []metav1.OwnerReference{{Kind: "DaemonSet", Name: "fluentd", APIVersion: "apps/v1", Controller: &trueVal}},
 			}},
 			expected: true,
+		},
+		{
+			name: "kind-only match without apiversion and controller is not a daemonset",
+			pod: corev1.Pod{ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{{Kind: "DaemonSet", Name: "fake"}},
+			}},
+			expected: false,
 		},
 	}
 
