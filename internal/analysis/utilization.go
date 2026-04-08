@@ -59,7 +59,9 @@ func calculatePercentage(used, total resource.Quantity) int {
 
 func IsDaemonSetPod(pod *corev1.Pod) bool {
 	for _, ref := range pod.OwnerReferences {
-		if ref.Kind == "DaemonSet" {
+		if ref.Kind == "DaemonSet" &&
+			ref.APIVersion == "apps/v1" &&
+			ref.Controller != nil && *ref.Controller {
 			return true
 		}
 	}
