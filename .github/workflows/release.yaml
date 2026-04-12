@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update krew manifest
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+
+          SHA_LINUX_AMD64=$(grep 'kubectl-ondemand_linux_amd64.tar.gz' dist/checksums.txt | awk '{print $1}')
+          SHA_LINUX_ARM64=$(grep 'kubectl-ondemand_linux_arm64.tar.gz' dist/checksums.txt | awk '{print $1}')
+          SHA_DARWIN_AMD64=$(grep 'kubectl-ondemand_darwin_amd64.tar.gz' dist/checksums.txt | awk '{print $1}')
+          SHA_DARWIN_ARM64=$(grep 'kubectl-ondemand_darwin_arm64.tar.gz' dist/checksums.txt | awk '{print $1}')
+          SHA_WINDOWS_AMD64=$(grep 'kubectl-ondemand_windows_amd64.zip' dist/checksums.txt | awk '{print $1}')
+
+          cat > deploy/krew/ondemand.yaml <<EOF
+          apiVersion: krew.googlecontainertools.github.com/v1alpha2
+          kind: Plugin
+          metadata:
+            name: ondemand
+          spec:
+            version: ${VERSION}
+            homepage: https://github.com/ssoriche/kubectl-ondemand
+            shortDescription: Analyze why Karpenter nodes are on-demand
+            description: |
+              Analyzes on-demand nodes managed by Karpenter and classifies why
+              each node and its workloads are running on on-demand capacity instead
+              of spot. Identifies requested, spot-fallback, and inherited cases,
+              and highlights misconfigured workloads that could run on spot.
+
+              Features:
+              - Classifies on-demand nodes as requested, spot-fallback, or inherited
+              - Shows per-pod analysis of why workloads are on on-demand nodes
+              - Detects misconfigured workloads that could run on spot
+              - Calculates spot-capable percentage per node
+              - Configurable spot taint validation
+              - Automatically detects Karpenter API version (v1alpha5, v1beta1, v1)
+              - Supports table, JSON, and YAML output formats
+            platforms:
+              - selector:
+                  matchLabels:
+                    os: linux
+                    arch: amd64
+                uri: https://github.com/ssoriche/kubectl-ondemand/releases/download/${VERSION}/kubectl-ondemand_linux_amd64.tar.gz
+                sha256: "${SHA_LINUX_AMD64}"
+                bin: kubectl-ondemand
+              - selector:
+                  matchLabels:
+                    os: linux
+                    arch: arm64
+                uri: https://github.com/ssoriche/kubectl-ondemand/releases/download/${VERSION}/kubectl-ondemand_linux_arm64.tar.gz
+                sha256: "${SHA_LINUX_ARM64}"
+                bin: kubectl-ondemand
+              - selector:
+                  matchLabels:
+                    os: darwin
+                    arch: amd64
+                uri: https://github.com/ssoriche/kubectl-ondemand/releases/download/${VERSION}/kubectl-ondemand_darwin_amd64.tar.gz
+                sha256: "${SHA_DARWIN_AMD64}"
+                bin: kubectl-ondemand
+              - selector:
+                  matchLabels:
+                    os: darwin
+                    arch: arm64
+                uri: https://github.com/ssoriche/kubectl-ondemand/releases/download/${VERSION}/kubectl-ondemand_darwin_arm64.tar.gz
+                sha256: "${SHA_DARWIN_ARM64}"
+                bin: kubectl-ondemand
+              - selector:
+                  matchLabels:
+                    os: windows
+                    arch: amd64
+                uri: https://github.com/ssoriche/kubectl-ondemand/releases/download/${VERSION}/kubectl-ondemand_windows_amd64.zip
+                sha256: "${SHA_WINDOWS_AMD64}"
+                bin: kubectl-ondemand.exe
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deploy/krew/ondemand.yaml
+          git diff --staged --quiet || (git commit -m "chore: update krew manifest for ${VERSION}" && git push origin HEAD:main)
