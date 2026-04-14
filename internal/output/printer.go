@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
+	"strings"
 	"text/tabwriter"
 
 	"gopkg.in/yaml.v3"
@@ -18,14 +20,18 @@ type Printer struct {
 	noHeaders    bool
 	outputFormat string
 	capabilities *karpenter.ClusterCapabilities
+	showLabels   bool
+	labelColumns []string
 }
 
-func NewPrinter(capabilities *karpenter.ClusterCapabilities, outputFormat string, noHeaders bool) *Printer {
+func NewPrinter(capabilities *karpenter.ClusterCapabilities, outputFormat string, noHeaders bool, showLabels bool, labelColumns []string) *Printer {
 	return &Printer{
 		out:          os.Stdout,
 		noHeaders:    noHeaders,
 		outputFormat: outputFormat,
 		capabilities: capabilities,
+		showLabels:   showLabels,
+		labelColumns: labelColumns,
 	}
 }
 
@@ -46,7 +52,14 @@ func (p *Printer) printNodesTable(nodes []analysis.NodeAnalysis) error {
 	poolHeader := p.capabilities.DeterminePoolColumnHeader()
 
 	if !p.noHeaders {
-		if _, err := fmt.Fprintf(w, "NAME\tINSTANCE-TYPE\t%s\tAGE\tCPU-UTIL\tMEM-UTIL\tON-DEMAND-REASON\tSPOT-CAPABLE%%\n", poolHeader); err != nil {
+		header := fmt.Sprintf("NAME\tINSTANCE-TYPE\t%s\tAGE\tCPU-UTIL\tMEM-UTIL\tON-DEMAND-REASON\tSPOT-CAPABLE%%", poolHeader)
+		for _, lc := range p.labelColumns {
+			header += "\t" + labelColumnHeader(lc)
+		}
+		if p.showLabels {
+			header += "\tLABELS"
+		}
+		if _, err := fmt.Fprintln(w, header); err != nil {
 			return err
 		}
 	}
@@ -68,9 +81,22 @@ func (p *Printer) printNodesTable(nodes []analysis.NodeAnalysis) error {
 		memUtil := analysis.FormatUtilization(info.MemoryUtilization)
 		spotCapable := analysis.FormatUtilization(info.SpotCapablePercent)
 
-		if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		line := fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
 			node.Name, instanceType, poolName, age,
-			cpuUtil, memUtil, string(info.Reason), spotCapable); err != nil {
+			cpuUtil, memUtil, string(info.Reason), spotCapable)
+
+		for _, lc := range p.labelColumns {
+			val := node.Labels[lc]
+			if val == "" {
+				val = "<none>"
+			}
+			line += "\t" + val
+		}
+		if p.showLabels {
+			line += "\t" + formatLabels(node.Labels)
+		}
+
+		if _, err := fmt.Fprintln(w, line); err != nil {
 			return err
 		}
 	}
@@ -78,15 +104,43 @@ func (p *Printer) printNodesTable(nodes []analysis.NodeAnalysis) error {
 	return w.Flush()
 }
 
+// labelColumnHeader returns a short uppercase header for a label key.
+// It uses the last segment after "/" if present.
+func labelColumnHeader(key string) string {
+	if idx := strings.LastIndex(key, "/"); idx >= 0 {
+		key = key[idx+1:]
+	}
+	return strings.ToUpper(key)
+}
+
+// formatLabels returns a sorted comma-separated key=value string.
+func formatLabels(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, len(keys))
+	for i, k := range keys {
+		parts[i] = k + "=" + labels[k]
+	}
+	return strings.Join(parts, ",")
+}
+
 type nodeOutput struct {
-	Name               string `json:"name" yaml:"name"`
-	InstanceType       string `json:"instanceType" yaml:"instanceType"`
-	PoolName           string `json:"poolName" yaml:"poolName"`
-	Age                string `json:"age" yaml:"age"`
-	CPUUtilization     string `json:"cpuUtilization" yaml:"cpuUtilization"`
-	MemoryUtilization  string `json:"memoryUtilization" yaml:"memoryUtilization"`
-	OnDemandReason     string `json:"onDemandReason" yaml:"onDemandReason"`
-	SpotCapablePercent string `json:"spotCapablePercent" yaml:"spotCapablePercent"`
+	Name               string            `json:"name" yaml:"name"`
+	InstanceType       string            `json:"instanceType" yaml:"instanceType"`
+	PoolName           string            `json:"poolName" yaml:"poolName"`
+	Age                string            `json:"age" yaml:"age"`
+	CPUUtilization     string            `json:"cpuUtilization" yaml:"cpuUtilization"`
+	MemoryUtilization  string            `json:"memoryUtilization" yaml:"memoryUtilization"`
+	OnDemandReason     string            `json:"onDemandReason" yaml:"onDemandReason"`
+	SpotCapablePercent string            `json:"spotCapablePercent" yaml:"spotCapablePercent"`
+	Labels             map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	LabelColumns       map[string]string `json:"labelColumns,omitempty" yaml:"labelColumns,omitempty"`
 }
 
 func (p *Printer) nodesToOutput(nodes []analysis.NodeAnalysis) []nodeOutput {
@@ -101,6 +155,16 @@ func (p *Printer) nodesToOutput(nodes []analysis.NodeAnalysis) []nodeOutput {
 			MemoryUtilization:  analysis.FormatUtilization(info.MemoryUtilization),
 			OnDemandReason:     string(info.Reason),
 			SpotCapablePercent: analysis.FormatUtilization(info.SpotCapablePercent),
+		}
+		if p.showLabels {
+			out[i].Labels = info.Node.Labels
+		}
+		if len(p.labelColumns) > 0 {
+			lc := make(map[string]string, len(p.labelColumns))
+			for _, key := range p.labelColumns {
+				lc[key] = info.Node.Labels[key]
+			}
+			out[i].LabelColumns = lc
 		}
 	}
 	return out
