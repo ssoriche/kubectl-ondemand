@@ -162,7 +162,11 @@ func (p *Printer) nodesToOutput(nodes []analysis.NodeAnalysis) []nodeOutput {
 		if len(p.labelColumns) > 0 {
 			lc := make(map[string]string, len(p.labelColumns))
 			for _, key := range p.labelColumns {
-				lc[key] = info.Node.Labels[key]
+				val := info.Node.Labels[key]
+				if val == "" {
+					val = "<none>"
+				}
+				lc[key] = val
 			}
 			out[i].LabelColumns = lc
 		}
