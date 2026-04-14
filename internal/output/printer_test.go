@@ -281,6 +281,40 @@ func TestPrintNodesLabelColumnsJSON(t *testing.T) {
 	}
 }
 
+func TestPrintNodesLabelColumnsMissingJSON(t *testing.T) {
+	nodes := []analysis.NodeAnalysis{
+		{
+			Node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1", CreationTimestamp: metav1.Now(),
+					Labels: map[string]string{},
+				},
+				Status: corev1.NodeStatus{
+					Allocatable: corev1.ResourceList{
+						corev1.ResourceCPU: resource.MustParse("4"), corev1.ResourceMemory: resource.MustParse("16Gi"),
+					},
+				},
+			},
+			Reason: analysis.NodeReasonRequested,
+		},
+	}
+
+	var buf bytes.Buffer
+	caps := &karpenter.ClusterCapabilities{}
+	p := &Printer{out: &buf, outputFormat: "json", capabilities: caps, labelColumns: []string{"team"}}
+
+	err := p.PrintNodes(nodes)
+	if err != nil {
+		t.Fatalf("PrintNodes() error = %v", err)
+	}
+
+	output := buf.String()
+	// Missing label in JSON should show <none> consistent with table output
+	if !strings.Contains(output, `"\u003cnone\u003e"`) && !strings.Contains(output, `"<none>"`) {
+		t.Errorf("expected <none> for missing label in JSON output, got:\n%s", output)
+	}
+}
+
 func TestPrintNodesNoLabelsInJSONByDefault(t *testing.T) {
 	nodes := []analysis.NodeAnalysis{
 		{
