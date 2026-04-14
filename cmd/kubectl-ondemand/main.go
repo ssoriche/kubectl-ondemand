@@ -56,6 +56,18 @@ Shows per-pod classification with --pods flag or when specific nodes are given.`
   # Check with spot taint validation
   kubectl ondemand --spot-taint core.zr.org/dedicated=spot:NoSchedule
 
+  # Sort by CPU utilization
+  kubectl ondemand --sort-by=cpuUtilization
+
+  # Sort by node creation timestamp (JSONPath)
+  kubectl ondemand --sort-by='{.metadata.creationTimestamp}'
+
+  # Show specific label columns
+  kubectl ondemand -L topology.kubernetes.io/zone,team
+
+  # Show all labels
+  kubectl ondemand --show-labels
+
   # Output as JSON
   kubectl ondemand -o json`,
 		Version:      version,
@@ -71,6 +83,9 @@ Shows per-pod classification with --pods flag or when specific nodes are given.`
 	cmd.Flags().BoolVar(&opts.noHeaders, "no-headers", false, "Don't print headers")
 	cmd.Flags().StringVar(&opts.spotTaint, "spot-taint", "", "Spot taint to check for (key=value:Effect)")
 	cmd.Flags().BoolVar(&opts.includeDaemonSets, "include-daemonsets", false, "Include DaemonSet pods in classification (default: excluded as system)")
+	cmd.Flags().StringVar(&opts.sortBy, "sort-by", "", "Sort output by column name or JSONPath expression")
+	cmd.Flags().BoolVar(&opts.showLabels, "show-labels", false, "Show all node labels as last column")
+	cmd.Flags().StringSliceVarP(&opts.labelColumns, "label-columns", "L", nil, "Comma-separated list of label keys to show as columns")
 
 	return cmd
 }
@@ -82,6 +97,9 @@ type options struct {
 	noHeaders         bool
 	spotTaint         string
 	includeDaemonSets bool
+	sortBy            string
+	showLabels        bool
+	labelColumns      []string
 }
 
 func run(ctx context.Context, args []string, opts options) error {
@@ -106,11 +124,17 @@ func run(ctx context.Context, args []string, opts options) error {
 	}
 
 	collector := analysis.NewCollector(client, dynClient, capabilities, opts.spotTaint, opts.includeDaemonSets)
-	printer := output.NewPrinter(capabilities, opts.output, opts.noHeaders)
+	printer := output.NewPrinter(capabilities, opts.output, opts.noHeaders, opts.showLabels, opts.labelColumns)
 
 	nodes, err := collector.Collect(ctx, args, opts.selector)
 	if err != nil {
 		return fmt.Errorf("failed to collect node information: %w", err)
+	}
+
+	if opts.sortBy != "" {
+		if err := output.SortNodes(nodes, opts.sortBy); err != nil {
+			return err
+		}
 	}
 
 	if opts.pods || len(args) > 0 {
