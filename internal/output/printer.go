@@ -86,8 +86,8 @@ func (p *Printer) printNodesTable(nodes []analysis.NodeAnalysis) error {
 			cpuUtil, memUtil, string(info.Reason), spotCapable)
 
 		for _, lc := range p.labelColumns {
-			val := node.Labels[lc]
-			if val == "" {
+			val, ok := node.Labels[lc]
+			if !ok {
 				val = "<none>"
 			}
 			line += "\t" + val
@@ -139,7 +139,7 @@ type nodeOutput struct {
 	MemoryUtilization  string            `json:"memoryUtilization" yaml:"memoryUtilization"`
 	OnDemandReason     string            `json:"onDemandReason" yaml:"onDemandReason"`
 	SpotCapablePercent string            `json:"spotCapablePercent" yaml:"spotCapablePercent"`
-	Labels             map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Labels             *map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	LabelColumns       map[string]string `json:"labelColumns,omitempty" yaml:"labelColumns,omitempty"`
 }
 
@@ -157,13 +157,17 @@ func (p *Printer) nodesToOutput(nodes []analysis.NodeAnalysis) []nodeOutput {
 			SpotCapablePercent: analysis.FormatUtilization(info.SpotCapablePercent),
 		}
 		if p.showLabels {
-			out[i].Labels = info.Node.Labels
+			labels := make(map[string]string, len(info.Node.Labels))
+			for k, v := range info.Node.Labels {
+				labels[k] = v
+			}
+			out[i].Labels = &labels
 		}
 		if len(p.labelColumns) > 0 {
 			lc := make(map[string]string, len(p.labelColumns))
 			for _, key := range p.labelColumns {
-				val := info.Node.Labels[key]
-				if val == "" {
+				val, ok := info.Node.Labels[key]
+				if !ok {
 					val = "<none>"
 				}
 				lc[key] = val
