@@ -23,5 +23,9 @@ vendor/
 # GoReleaser
 dist/
 
+# Nix
+result
+result-*
+
 # Worktrees
 .worktrees/
