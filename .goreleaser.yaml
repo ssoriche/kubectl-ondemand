@@ -57,6 +57,11 @@ release:
   footer: |
     ## Installation
 
+    ### Via krew (recommended)
+    ```bash
+    kubectl krew install ondemand
+    ```
+
     ### Manual installation
     Download the appropriate binary for your platform, extract it, and place it in your PATH.
 
