@@ -4,6 +4,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// APIVersion represents a Karpenter API version
 type APIVersion string
 
 const (
@@ -13,40 +14,56 @@ const (
 	APIVersionUnknown  APIVersion = "unknown"
 )
 
+// ClusterCapabilities represents which Karpenter CRDs are available in the cluster
 type ClusterCapabilities struct {
-	HasNodeClaims   bool
-	HasMachines     bool
-	HasNodePools    bool
-	HasProvisioners bool
-	PrimaryVersion  APIVersion
+	HasNodeClaims   bool       // v1beta1/v1
+	HasMachines     bool       // v1alpha5
+	HasNodePools    bool       // v1beta1/v1
+	HasProvisioners bool       // v1alpha5
+	PrimaryVersion  APIVersion // Most likely version based on CRDs
 }
 
+// DetectNodeVersion determines which API version provisioned a specific node
+// based on its labels
 func DetectNodeVersion(node *corev1.Node) APIVersion {
 	if node == nil || node.Labels == nil {
 		return APIVersionUnknown
 	}
+
+	// v1beta1/v1 uses karpenter.sh/nodepool
 	if _, ok := node.Labels[LabelNodePool]; ok {
 		return APIVersionV1Beta1
 	}
+
+	// v1alpha5 uses karpenter.sh/provisioner-name
 	if _, ok := node.Labels[LabelProvisionerName]; ok {
 		return APIVersionV1Alpha5
 	}
+
 	return APIVersionUnknown
 }
 
+// GetPoolName returns the nodepool or provisioner name from node labels
+// along with the detected API version
 func GetPoolName(node *corev1.Node) (name string, version APIVersion) {
 	if node == nil || node.Labels == nil {
 		return "", APIVersionUnknown
 	}
+
+	// Check v1beta1/v1 first (newer)
 	if name, ok := node.Labels[LabelNodePool]; ok {
 		return name, APIVersionV1Beta1
 	}
+
+	// Fall back to v1alpha5
 	if name, ok := node.Labels[LabelProvisionerName]; ok {
 		return name, APIVersionV1Alpha5
 	}
+
 	return "", APIVersionUnknown
 }
 
+// GetCapacityType returns the capacity type from node labels
 func GetCapacityType(node *corev1.Node) string {
 	if node == nil || node.Labels == nil {
 		return ""
@@ -54,6 +71,7 @@ func GetCapacityType(node *corev1.Node) string {
 	return node.Labels[LabelCapacityType]
 }
 
+// GetInstanceType returns the instance type from node labels
 func GetInstanceType(node *corev1.Node) string {
 	if node == nil || node.Labels == nil {
 		return ""
@@ -61,16 +79,16 @@ func GetInstanceType(node *corev1.Node) string {
 	return node.Labels[LabelInstanceType]
 }
 
+// DeterminePoolColumnHeader returns the appropriate column header based on cluster capabilities
 func (c *ClusterCapabilities) DeterminePoolColumnHeader() string {
+	// If we have v1beta1/v1 CRDs, prefer NODEPOOL
 	if c.HasNodePools || c.HasNodeClaims {
 		return "NODEPOOL"
 	}
+	// If we only have v1alpha5 CRDs, use PROVISIONER
 	if c.HasProvisioners || c.HasMachines {
 		return "PROVISIONER"
 	}
+	// Default to NODEPOOL for non-Karpenter clusters
 	return "NODEPOOL"
-}
-
-func (c *ClusterCapabilities) HasKarpenter() bool {
-	return c.HasNodeClaims || c.HasMachines || c.HasNodePools || c.HasProvisioners
 }
