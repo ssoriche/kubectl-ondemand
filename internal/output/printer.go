@@ -131,16 +131,16 @@ func formatLabels(labels map[string]string) string {
 }
 
 type nodeOutput struct {
-	Name               string            `json:"name" yaml:"name"`
-	InstanceType       string            `json:"instanceType" yaml:"instanceType"`
-	PoolName           string            `json:"poolName" yaml:"poolName"`
-	Age                string            `json:"age" yaml:"age"`
-	CPUUtilization     string            `json:"cpuUtilization" yaml:"cpuUtilization"`
-	MemoryUtilization  string            `json:"memoryUtilization" yaml:"memoryUtilization"`
-	OnDemandReason     string            `json:"onDemandReason" yaml:"onDemandReason"`
-	SpotCapablePercent string            `json:"spotCapablePercent" yaml:"spotCapablePercent"`
+	Name               string             `json:"name" yaml:"name"`
+	InstanceType       string             `json:"instanceType" yaml:"instanceType"`
+	PoolName           string             `json:"poolName" yaml:"poolName"`
+	Age                string             `json:"age" yaml:"age"`
+	CPUUtilization     string             `json:"cpuUtilization" yaml:"cpuUtilization"`
+	MemoryUtilization  string             `json:"memoryUtilization" yaml:"memoryUtilization"`
+	OnDemandReason     string             `json:"onDemandReason" yaml:"onDemandReason"`
+	SpotCapablePercent string             `json:"spotCapablePercent" yaml:"spotCapablePercent"`
 	Labels             *map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	LabelColumns       map[string]string `json:"labelColumns,omitempty" yaml:"labelColumns,omitempty"`
+	LabelColumns       map[string]string  `json:"labelColumns,omitempty" yaml:"labelColumns,omitempty"`
 }
 
 func (p *Printer) nodesToOutput(nodes []analysis.NodeAnalysis) []nodeOutput {
