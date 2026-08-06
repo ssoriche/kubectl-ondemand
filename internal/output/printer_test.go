@@ -204,13 +204,16 @@ func TestPrintNodesLabelColumnsMissing(t *testing.T) {
 }
 
 func TestPrintNodesLabelColumnsEmptyValue(t *testing.T) {
-	// A label with key present but empty string value should show empty, not <none>
+	// A label whose key is present with an empty value should render as an empty
+	// column, not <none>. The trailing "team" column keeps "marker" off the end of
+	// the row on purpose: tabwriter does not pad the final cell, so an empty last
+	// column is indistinguishable from one that was never emitted at all.
 	nodes := []analysis.NodeAnalysis{
 		{
 			Node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "node-1", CreationTimestamp: metav1.Now(),
-					Labels: map[string]string{"marker": ""},
+					Labels: map[string]string{"marker": "", "team": "core"},
 				},
 				Status: corev1.NodeStatus{
 					Allocatable: corev1.ResourceList{
@@ -226,25 +229,36 @@ func TestPrintNodesLabelColumnsEmptyValue(t *testing.T) {
 
 	var buf bytes.Buffer
 	caps := &karpenter.ClusterCapabilities{HasNodePools: true}
-	p := &Printer{out: &buf, capabilities: caps, labelColumns: []string{"marker"}}
+	p := &Printer{out: &buf, capabilities: caps, labelColumns: []string{"marker", "team"}}
 
-	err := p.PrintNodes(nodes)
-	if err != nil {
+	if err := p.PrintNodes(nodes); err != nil {
 		t.Fatalf("PrintNodes() error = %v", err)
 	}
 
-	// Parse the output lines: header + data row
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
 	if len(lines) < 2 {
-		t.Fatalf("expected at least 2 lines, got %d", len(lines))
+		t.Fatalf("expected at least 2 lines, got %d:\n%s", len(lines), buf.String())
 	}
-	// The MARKER column is the last column; its value should be empty, not <none>
-	dataFields := strings.Fields(lines[1])
-	lastField := dataFields[len(dataFields)-1]
-	// With an empty label value, the last meaningful field should NOT be <none>
-	// (it won't appear in Fields output at all since it's whitespace)
-	if lastField == "<none>" {
-		t.Errorf("expected empty value for present label, got <none>")
+	header, row := lines[0], lines[1]
+
+	// tabwriter aligns every non-trailing cell, so offsets taken from the header
+	// locate the same columns in the data row.
+	markerAt := strings.Index(header, "MARKER")
+	teamAt := strings.Index(header, "TEAM")
+	if markerAt < 0 || teamAt <= markerAt {
+		t.Fatalf("expected MARKER before TEAM in header, got:\n%s", header)
+	}
+	if len(row) < teamAt {
+		t.Fatalf("data row is shorter than the TEAM column offset %d:\n%s", teamAt, row)
+	}
+
+	if got := strings.TrimSpace(row[markerAt:teamAt]); got != "" {
+		t.Errorf("expected an empty MARKER column for a present-but-empty label, got %q\nheader: %s\nrow:    %s", got, header, row)
+	}
+	// Guards against the empty MARKER column being dropped rather than padded:
+	// were it dropped, "core" would have shifted left into MARKER's offset.
+	if got := strings.TrimSpace(row[teamAt:]); got != "core" {
+		t.Errorf("expected TEAM column to be %q, got %q\nheader: %s\nrow:    %s", "core", got, header, row)
 	}
 }
 
