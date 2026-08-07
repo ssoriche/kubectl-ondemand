@@ -68,19 +68,31 @@ func sortByJSONPath(nodes []analysis.NodeAnalysis, expr string) error {
 		return fmt.Errorf("invalid JSONPath expression %q: %w", expr, err)
 	}
 
-	// Extract values for each node
-	values := make([]string, len(nodes))
+	// Extract the sort key for each node up front, keeping each key attached to
+	// its own node. Sorting `nodes` while indexing a parallel []string by slice
+	// position would, after the first swap, compare keys belonging to nodes that
+	// have already moved.
+	type keyedNode struct {
+		node analysis.NodeAnalysis
+		key  string
+	}
+	keyed := make([]keyedNode, len(nodes))
 	for i, na := range nodes {
+		keyed[i].node = na
 		var buf bytes.Buffer
 		if err := jp.Execute(&buf, na.Node); err != nil {
-			values[i] = ""
+			// Unresolvable paths sort as the empty string.
 			continue
 		}
-		values[i] = buf.String()
+		keyed[i].key = buf.String()
 	}
 
-	sort.SliceStable(nodes, func(i, j int) bool {
-		return values[i] < values[j]
+	sort.SliceStable(keyed, func(i, j int) bool {
+		return keyed[i].key < keyed[j].key
 	})
+
+	for i := range keyed {
+		nodes[i] = keyed[i].node
+	}
 	return nil
 }
