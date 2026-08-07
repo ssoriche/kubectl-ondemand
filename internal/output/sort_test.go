@@ -260,3 +260,59 @@ func TestSortNodesByJSONPathWithDotPrefix(t *testing.T) {
 		}
 	}
 }
+
+// Three nodes are the minimum needed to catch a comparator that reads its
+// extracted values by slice position: with two elements the single comparison
+// happens before any swap, so a value slice that is not permuted alongside the
+// nodes still yields the right answer.
+func TestSortNodesByJSONPathThreeNodes(t *testing.T) {
+	now := time.Now()
+	nodes := []analysis.NodeAnalysis{
+		{Node: makeNode("n1", now, map[string]string{"zone": "us-east-1c"})},
+		{Node: makeNode("n2", now, map[string]string{"zone": "us-east-1a"})},
+		{Node: makeNode("n3", now, map[string]string{"zone": "us-east-1b"})},
+	}
+
+	if err := SortNodes(nodes, "{.metadata.labels.zone}"); err != nil {
+		t.Fatalf("SortNodes() error = %v", err)
+	}
+
+	want := []string{"n2", "n3", "n1"}
+	got := make([]string, len(nodes))
+	for i, n := range nodes {
+		got[i] = n.Node.Name
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("nodes not sorted by zone: got %v, want %v", got, want)
+		}
+	}
+}
+
+// Nodes whose JSONPath does not resolve sort as empty strings, and must still
+// travel with their own values rather than inheriting a neighbour's.
+func TestSortNodesByJSONPathMissingValues(t *testing.T) {
+	now := time.Now()
+	nodes := []analysis.NodeAnalysis{
+		{Node: makeNode("has-c", now, map[string]string{"zone": "us-east-1c"})},
+		{Node: makeNode("none-1", now, nil)},
+		{Node: makeNode("has-a", now, map[string]string{"zone": "us-east-1a"})},
+		{Node: makeNode("none-2", now, nil)},
+	}
+
+	if err := SortNodes(nodes, "{.metadata.labels.zone}"); err != nil {
+		t.Fatalf("SortNodes() error = %v", err)
+	}
+
+	got := make([]string, len(nodes))
+	for i, n := range nodes {
+		got[i] = n.Node.Name
+	}
+	// Empty values sort first, stably preserving none-1 before none-2.
+	want := []string{"none-1", "none-2", "has-a", "has-c"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("nodes not sorted by zone: got %v, want %v", got, want)
+		}
+	}
+}
